@@ -1,16 +1,23 @@
 package com.jpmc.midascore;
+
 import com.jpmc.midascore.foundation.Transaction;
+import com.jpmc.midascore.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-
+//489.969971
 
 @Component
  class KafkaMessageListener {
     private final Logger logger = LoggerFactory.getLogger(KafkaMessageListener.class);
-
+    @Autowired
+    TransactionRecordService transactionRecordService;
+    KafkaMessageListener(TransactionRecordService transactionRecordService) {
+        this.transactionRecordService = transactionRecordService;
+    }
     @KafkaListener(
             topics = "${general.kafka-topic}",
             id = "trader-101",
@@ -18,6 +25,14 @@ import org.springframework.stereotype.Component;
     )
     public void consume(Transaction transaction) {
         logger.info("Consuming transaction {}", transaction.getAmount());
+        //calling save to save transaction in database when getting it
+        try{
+            transactionRecordService.save(transaction);
+        } catch (Exception e){
+                System.out.println("Error while consuming transaction " + transaction.getAmount());
+                e.printStackTrace();
+        }
+
     }
 }
 

@@ -5,4 +5,5 @@ import org.springframework.data.repository.CrudRepository;
 
 public interface UserRepository extends CrudRepository<UserRecord, Long> {
     UserRecord findById(long id);
+    // i want to edit the amount , update the amount
 }
