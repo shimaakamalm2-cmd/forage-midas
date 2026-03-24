@@ -19,6 +19,9 @@ public class TransactionRecord {
     @JoinColumn(name = "recipient_id")
     private UserRecord recipient;
 
+    @Column
+    private float incentive;
+
     public TransactionRecord() {
     }
 
@@ -60,6 +63,14 @@ public class TransactionRecord {
 
     public void setRecipient(UserRecord recipient) {
         this.recipient = recipient;
+    }
+
+    public float getIncentive() {
+        return incentive;
+    }
+
+    public void setIncentive(float incentive) {
+        this.incentive = incentive;
     }
 
     @Override

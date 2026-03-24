@@ -7,16 +7,21 @@ import com.jpmc.midascore.repository.TransactionRecordRepository;
 import com.jpmc.midascore.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Objects;
 
 
 @Service
 public class TransactionRecordService {
     private final TransactionRecordRepository transactionRecordRepository;
     private final UserRepository userRepository;
+    final RestTemplate restTemplate;
 
-    public TransactionRecordService(TransactionRecordRepository transactionRecordRepository, UserRepository userRepository) {
+    public TransactionRecordService(TransactionRecordRepository transactionRecordRepository, UserRepository userRepository, RestTemplate restTemplate) {
         this.transactionRecordRepository = transactionRecordRepository;
         this.userRepository = userRepository;
+        this.restTemplate = restTemplate;
     }
 
 
@@ -25,31 +30,27 @@ public class TransactionRecordService {
         if (userRepository.existsById(kafkaTransaction.getRecipientId()) && userRepository.existsById(kafkaTransaction.getSenderId()) &&
                 (userRepository.findById(kafkaTransaction.getSenderId())).getBalance()>=kafkaTransaction.getAmount()
         ){
-
-            //sender+ receiver
+            Incentive incentive = restTemplate.postForObject("http://localhost:8080/incentive", kafkaTransaction, Incentive.class);
+            float bonus = Objects.requireNonNull(incentive).getAmount();
+            // getting sender+ receiver
             UserRecord sender= userRepository.findById(kafkaTransaction.getSenderId());
             UserRecord recipient = userRepository.findById(kafkaTransaction.getRecipientId());
-            //making transaction record to save it
+
+            //updating sender
+            sender.setBalance(sender.getBalance() - kafkaTransaction.getAmount());
+            userRepository.save(sender);
+            //updating the receiver
+            recipient.setBalance(recipient.getBalance() + kafkaTransaction.getAmount() + bonus);
+            userRepository.save(recipient);
+            //saving transaction in database
             TransactionRecord transactionRecord = new TransactionRecord();
             transactionRecord.setSender(sender);
             transactionRecord.setRecipient(recipient);
             transactionRecord.setAmount(kafkaTransaction.getAmount());
-            System.out.println("the amount is " + kafkaTransaction.getAmount());
-            //updating sender
-            System.out.println("balance of sender before: "+ sender.getBalance());
-            sender.setBalance(sender.getBalance() - kafkaTransaction.getAmount());
-            System.out.println("balance of sender after: "+ sender.getBalance());
-            userRepository.save(sender);
-            //updating the receiver
-            System.out.println("balance of receiver before: " + recipient.getBalance());
-            recipient.setBalance(recipient.getBalance()+kafkaTransaction.getAmount());
-            userRepository.save(recipient);
-            System.out.println("balance after receiver after : " + recipient.getBalance());
-            //saving the transaction in database
+            transactionRecord.setIncentive(bonus);
             transactionRecordRepository.save(transactionRecord);
-            System.out.println("Transaction record saved successfully");
-            System.out.println(sender.toString());
-            System.out.println(recipient.toString());
+            //saving the transaction in database
+            //making transaction record to save it
         }
 
     }
