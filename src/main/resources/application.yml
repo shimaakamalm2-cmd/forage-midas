@@ -1,3 +1,6 @@
+server:
+  port: 33400
+
 general:
   kafka-topic: trader-updates
 
@@ -11,4 +14,3 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
         spring.json.trusted.packages: "*"
-
